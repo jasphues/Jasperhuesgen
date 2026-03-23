@@ -112,6 +112,11 @@ def update_voucher_draft(
         "categoryId": effective_category,
     }
 
+    final_items = [voucher_item] if effective_category else existing_items
+    if not final_items:
+        print(f"  Skipping update — no voucherItems could be determined, file attached to draft in Lex Office")
+        return voucher_id  # file is attached, user fills in manually
+
     body = {
         "version": version,
         "type": voucher_type,
@@ -120,7 +125,7 @@ def update_voucher_draft(
         "taxType": vat_type,
         "totalGrossAmount": round(amount_gross, 2),
         "totalTaxAmount": tax_amount,
-        "voucherItems": [voucher_item] if amount_gross > 0 and effective_category else [],
+        "voucherItems": final_items,
     }
 
     # Preserve contact info from existing voucher
