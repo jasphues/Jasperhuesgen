@@ -16,8 +16,8 @@ from gmail_client import get_gmail_service, search_invoice_emails, download_pdf_
 from drive_client import get_drive_service, get_monthly_folder, upload_pdf
 from lexoffice_client import (
     get_posting_categories,
-    upload_file,
-    create_voucher_draft,
+    upload_file_and_get_voucher_id,
+    update_voucher_draft,
     find_existing_voucher,
 )
 from categorizer import categorize, match_category_id
@@ -126,22 +126,22 @@ def main():
                 drive_file_id, drive_link = upload_pdf(drive, filename, pdf_bytes, drive_folder_id)
                 print(f"  Uploaded to Drive: {drive_link}")
 
-                # Upload PDF to Lex Office
-                lex_file_id = upload_file(pdf_bytes, filename)
+                # Upload PDF to Lex Office — auto-creates a draft voucher
+                lex_file_id, voucher_id = upload_file_and_get_voucher_id(pdf_bytes, filename)
 
-                # Create draft voucher
-                voucher_id = create_voucher_draft(
+                # Update the draft voucher with invoice details
+                voucher_id = update_voucher_draft(
+                    voucher_id=voucher_id,
                     vendor_name=sender_name,
                     voucher_date=format_iso_date(date.today().replace(day=1) - relativedelta(days=1)),
                     amount_gross=amount,
                     category_id=category_id,
                     vat_type=cat_result["vat_type"],
                     vat_rate=cat_result["vat_rate"],
-                    document_file_id=lex_file_id,
                     description=subject[:255],
                     notes=cat_result["notes"],
                 )
-                print(f"  Created draft voucher: {voucher_id}")
+                print(f"  Updated draft voucher: {voucher_id}")
                 processed += 1
 
         except Exception as e:

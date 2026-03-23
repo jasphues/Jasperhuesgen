@@ -47,8 +47,8 @@ def get_posting_categories():
     return result.get("content", [])
 
 
-def upload_file(pdf_bytes: bytes, filename: str) -> str:
-    """Upload PDF and return documentFileId."""
+def upload_file_and_get_voucher_id(pdf_bytes: bytes, filename: str) -> tuple[str, str]:
+    """Upload PDF, returns (file_id, voucher_id) — Lex Office auto-creates a draft voucher."""
     headers = {k: v for k, v in _headers().items() if k != "Content-Type"}
     for attempt in range(3):
         r = requests.post(
@@ -62,22 +62,27 @@ def upload_file(pdf_bytes: bytes, filename: str) -> str:
             continue
         if not r.ok:
             raise Exception(f"{r.status_code} {r.reason} for url: {r.url} — {r.text}")
-        return r.json()["id"]
+        data = r.json()
+        return data["id"], data["voucherId"]
     raise Exception("upload_file failed after 3 retries")
 
 
-def create_voucher_draft(
+def update_voucher_draft(
+    voucher_id: str,
     vendor_name: str,
     voucher_date: str,
     amount_gross: float,
     category_id: str | None,
     vat_type: str,
     vat_rate: int,
-    document_file_id: str,
     description: str,
     notes: str = "",
 ) -> str:
-    """Create a draft voucher and return its ID."""
+    """Update an existing draft voucher with invoice details. Returns voucher ID."""
+
+    # First get the current voucher to obtain its version (required for PUT)
+    current = _get(f"/vouchers/{voucher_id}")
+    version = current.get("version", 0)
 
     line_item = {
         "type": "custom",
@@ -93,19 +98,30 @@ def create_voucher_draft(
         line_item["categoryId"] = category_id
 
     body = {
+        "version": version,
         "voucherDate": voucher_date,
         "address": {"name": vendor_name},
         "lineItems": [line_item],
         "totalPrice": {"currency": "EUR"},
         "taxConditions": {"taxType": vat_type},
-        "files": [{"id": document_file_id, "fileType": "voucher"}],
     }
 
     if notes:
         body["remark"] = notes
 
-    result = _post("/vouchers", json=body)
-    return result["id"]
+    for attempt in range(3):
+        r = requests.put(
+            f"{BASE_URL}/vouchers/{voucher_id}",
+            headers=_headers(),
+            json=body,
+        )
+        if r.status_code == 429:
+            time.sleep(2 ** attempt)
+            continue
+        if not r.ok:
+            raise Exception(f"{r.status_code} {r.reason} for url: {r.url} — {r.text}")
+        return voucher_id
+    raise Exception("update_voucher_draft failed after 3 retries")
 
 
 def find_existing_voucher(vendor_name: str, date_from: str, date_to: str) -> list:
