@@ -123,8 +123,17 @@ def update_voucher_draft(
         "voucherItems": [voucher_item] if amount_gross > 0 and effective_category else [],
     }
 
-    if vendor_name:
+    # Preserve contact info from existing voucher
+    if current.get("contactId"):
+        body["contactId"] = current["contactId"]
+    elif current.get("useCollectiveContact"):
+        body["useCollectiveContact"] = True
+        if current.get("contactName"):
+            body["contactName"] = current["contactName"]
+    elif vendor_name:
+        body["useCollectiveContact"] = True
         body["contactName"] = vendor_name
+
     if notes:
         body["remark"] = notes
 
