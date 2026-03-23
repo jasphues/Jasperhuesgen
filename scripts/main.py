@@ -73,9 +73,14 @@ def format_iso_date(d: date) -> str:
 
 
 def get_previous_month_iso():
-    # TEMP: use current month for testing
     today = date.today()
-    return today.replace(day=1).strftime("%Y-%m-%d"), today.strftime("%Y-%m-%d")
+    first_of_this_month = today.replace(day=1)
+    last_month_end = first_of_this_month - relativedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
+    return (
+        last_month_start.strftime("%Y-%m-%d"),
+        last_month_end.strftime("%Y-%m-%d"),
+    )
 
 
 def main():
