@@ -100,20 +100,27 @@ def update_voucher_draft(
     else:
         tax_amount = 0.0
 
+    # Fall back to existing category if we couldn't detect one
+    existing_items = current.get("voucherItems", [])
+    fallback_category = existing_items[0].get("categoryId") if existing_items else None
+    effective_category = category_id or fallback_category
+
     voucher_item = {
         "amount": round(amount_gross, 2),
         "taxAmount": tax_amount,
         "taxRatePercent": float(vat_rate),
+        "categoryId": effective_category,
     }
-    if category_id:
-        voucher_item["categoryId"] = category_id
 
     body = {
         "version": version,
         "type": voucher_type,
+        "voucherNumber": current.get("voucherNumber", ""),
         "voucherDate": voucher_date,
         "taxType": vat_type,
-        "voucherItems": [voucher_item] if amount_gross > 0 else [],
+        "totalGrossAmount": round(amount_gross, 2),
+        "totalTaxAmount": tax_amount,
+        "voucherItems": [voucher_item] if amount_gross > 0 and effective_category else [],
     }
 
     if vendor_name:
