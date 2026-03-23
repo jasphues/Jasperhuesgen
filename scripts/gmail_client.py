@@ -18,11 +18,9 @@ def get_gmail_service():
 
 
 def get_previous_month_range():
+    # TEMP: use current month for testing
     today = date.today()
-    first_of_this_month = today.replace(day=1)
-    last_month_end = first_of_this_month - relativedelta(days=1)
-    last_month_start = last_month_end.replace(day=1)
-    return last_month_start, last_month_end
+    return today.replace(day=1), today
 
 
 def search_invoice_emails(service):
