@@ -41,6 +41,8 @@ def _post(path, json=None, files=None, retries=3):
 
 def get_posting_categories():
     result = _get("/posting-categories")
+    if isinstance(result, list):
+        return result
     return result.get("content", [])
 
 
