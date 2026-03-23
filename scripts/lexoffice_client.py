@@ -83,6 +83,7 @@ def update_voucher_draft(
     # First get the current voucher to obtain its version (required for PUT)
     current = _get(f"/vouchers/{voucher_id}")
     version = current.get("version", 0)
+    print(f"  Current voucher: {current}")
 
     line_item = {
         "type": "custom",
