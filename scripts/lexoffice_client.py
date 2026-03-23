@@ -77,36 +77,47 @@ def update_voucher_draft(
     vat_rate: int,
     description: str,
     notes: str = "",
-) -> str:
-    """Update an existing draft voucher with invoice details. Returns voucher ID."""
+) -> str | None:
+    """Update an existing draft voucher with invoice details.
+    Returns voucher ID, or None if voucher should be skipped."""
 
-    # First get the current voucher to obtain its version (required for PUT)
     current = _get(f"/vouchers/{voucher_id}")
     version = current.get("version", 0)
-    print(f"  Current voucher: {current}")
+    status = current.get("voucherStatus", "")
+    voucher_type = current.get("type", "purchaseinvoice")
 
-    line_item = {
-        "type": "custom",
-        "name": description,
-        "quantity": 1,
-        "unitPrice": {
-            "currency": "EUR",
-            "grossAmount": round(amount_gross, 2),
-            "taxRatePercentage": vat_rate,
-        },
+    # Skip already-processed or outgoing invoices
+    if status in ("paid", "paidoff", "voided"):
+        print(f"  Skipping — voucher already {status} in Lex Office")
+        return None
+    if voucher_type == "salesinvoice":
+        print(f"  Skipping — outgoing sales invoice, not an expense")
+        return None
+
+    # Calculate tax amount
+    if vat_type == "gross" and vat_rate > 0:
+        tax_amount = round(amount_gross * vat_rate / (100 + vat_rate), 2)
+    else:
+        tax_amount = 0.0
+
+    voucher_item = {
+        "amount": round(amount_gross, 2),
+        "taxAmount": tax_amount,
+        "taxRatePercent": float(vat_rate),
     }
     if category_id:
-        line_item["categoryId"] = category_id
+        voucher_item["categoryId"] = category_id
 
     body = {
         "version": version,
+        "type": voucher_type,
         "voucherDate": voucher_date,
-        "address": {"name": vendor_name},
-        "lineItems": [line_item],
-        "totalPrice": {"currency": "EUR"},
-        "taxConditions": {"taxType": vat_type},
+        "taxType": vat_type,
+        "voucherItems": [voucher_item] if amount_gross > 0 else [],
     }
 
+    if vendor_name:
+        body["contactName"] = vendor_name
     if notes:
         body["remark"] = notes
 

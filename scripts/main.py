@@ -130,7 +130,7 @@ def main():
                 lex_file_id, voucher_id = upload_file_and_get_voucher_id(pdf_bytes, filename)
 
                 # Update the draft voucher with invoice details
-                voucher_id = update_voucher_draft(
+                result_id = update_voucher_draft(
                     voucher_id=voucher_id,
                     vendor_name=sender_name,
                     voucher_date=format_iso_date(date.today().replace(day=1) - relativedelta(days=1)),
@@ -141,8 +141,11 @@ def main():
                     description=subject[:255],
                     notes=cat_result["notes"],
                 )
-                print(f"  Updated draft voucher: {voucher_id}")
-                processed += 1
+                if result_id:
+                    print(f"  Updated draft voucher: {result_id}")
+                    processed += 1
+                else:
+                    skipped += 1
 
         except Exception as e:
             errors.append(f"{msg['id']}: {e}")
