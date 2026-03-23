@@ -49,11 +49,21 @@ def get_posting_categories():
 
 def upload_file(pdf_bytes: bytes, filename: str) -> str:
     """Upload PDF and return documentFileId."""
-    result = _post(
-        "/files",
-        files={"file": (filename, pdf_bytes, "application/pdf")},
-    )
-    return result["documentFileId"]
+    headers = {k: v for k, v in _headers().items() if k != "Content-Type"}
+    for attempt in range(3):
+        r = requests.post(
+            f"{BASE_URL}/files",
+            headers=headers,
+            params={"type": "voucher"},
+            files={"file": (filename, pdf_bytes, "application/pdf")},
+        )
+        if r.status_code == 429:
+            time.sleep(2 ** attempt)
+            continue
+        if not r.ok:
+            raise Exception(f"{r.status_code} {r.reason} for url: {r.url} — {r.text}")
+        return r.json()["documentFileId"]
+    raise Exception("upload_file failed after 3 retries")
 
 
 def create_voucher_draft(
