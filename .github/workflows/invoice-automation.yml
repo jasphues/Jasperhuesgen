@@ -1,0 +1,30 @@
+name: Invoice Automation
+
+on:
+  schedule:
+    - cron: "0 8 5 * *"  # 5th of every month at 08:00 UTC
+  workflow_dispatch:      # allow manual trigger for testing
+
+jobs:
+  run-invoice-automation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r scripts/requirements.txt
+
+      - name: Run invoice automation
+        working-directory: scripts
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          LEXOFFICE_API_KEY: ${{ secrets.LEXOFFICE_API_KEY }}
+        run: python main.py
