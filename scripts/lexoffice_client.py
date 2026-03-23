@@ -34,7 +34,8 @@ def _post(path, json=None, files=None, retries=3):
         if r.status_code == 429:
             time.sleep(2 ** attempt)
             continue
-        r.raise_for_status()
+        if not r.ok:
+            raise Exception(f"{r.status_code} {r.reason} for url: {r.url} — {r.text}")
         return r.json()
     raise Exception(f"POST {path} failed after {retries} retries")
 
