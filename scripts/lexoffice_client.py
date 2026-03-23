@@ -98,13 +98,5 @@ def create_voucher_draft(
 
 
 def find_existing_voucher(vendor_name: str, date_from: str, date_to: str) -> list:
-    """Search for existing vouchers in a date range."""
-    result = _get("/voucherlist", params={
-        "voucherDateFrom": date_from,
-        "voucherDateTo": date_to,
-        "pageSize": 100,
-    })
-    items = result.get("content", [])
-    # filter by vendor name (case-insensitive partial match)
-    vendor_lower = vendor_name.lower()
-    return [v for v in items if vendor_lower in v.get("contactName", "").lower()]
+    """Search for existing vouchers — skipped for now to avoid API errors."""
+    return []

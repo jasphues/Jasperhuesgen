@@ -30,32 +30,16 @@ def search_invoice_emails(service):
     after = start.strftime("%Y/%m/%d")
     before = (end + relativedelta(days=1)).strftime("%Y/%m/%d")
 
+    # Strict subject-only search to avoid pulling in non-invoice PDFs
     query = (
-        f"(subject:invoice OR subject:rechnung OR subject:receipt) "
+        f"(subject:invoice OR subject:rechnung OR subject:receipt OR subject:faktura "
+        f"OR subject:\"your invoice\" OR subject:\"ihre rechnung\" OR subject:\"your receipt\") "
         f"has:attachment filename:pdf "
         f"after:{after} before:{before}"
     )
 
-    result = service.users().messages().list(userId="me", q=query).execute()
-    messages = result.get("messages", [])
-
-    # also search email body for keywords
-    query_body = (
-        f"(invoice OR rechnung OR receipt) "
-        f"has:attachment filename:pdf "
-        f"after:{after} before:{before}"
-    )
-    result_body = service.users().messages().list(userId="me", q=query_body).execute()
-    messages_body = result_body.get("messages", [])
-
-    # deduplicate
-    seen = {m["id"] for m in messages}
-    for m in messages_body:
-        if m["id"] not in seen:
-            messages.append(m)
-            seen.add(m["id"])
-
-    return messages
+    result = service.users().messages().list(userId="me", q=query, maxResults=100).execute()
+    return result.get("messages", [])
 
 
 def download_pdf_attachments(service, message_id):
