@@ -34,19 +34,37 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
 
 def extract_amount(pdf_text: str) -> float | None:
     """Try to extract total gross amount from PDF text."""
-    # Look for patterns like "Total: 99,00 EUR" or "Gesamt: 99.00 €"
-    patterns = [
-        r"(?:total|gesamt|summe|betrag|amount)[^\d]{0,30}([\d]{1,6}[.,]\d{2})\s*(?:eur|€)?",
-        r"([\d]{1,6}[.,]\d{2})\s*(?:eur|€)\s*$",
+    text = pdf_text.lower()
+
+    # Priority patterns — labeled totals (most reliable)
+    labeled_patterns = [
+        r"(?:rechnungsbetrag|gesamtbetrag|total\s+amount|total\s+due|amount\s+due|betrag\s+fällig|zu\s+zahlen(?:der\s+betrag)?|gesamt(?:betrag)?|summe(?:\s+gesamt)?|grand\s+total|invoice\s+total|total)[^\d]{0,40}([\d]{1,6}[.,]\d{2})\s*(?:eur|€)?",
+        r"(?:eur|€)\s*([\d]{1,6}[.,]\d{2})\s*$",
+        r"([\d]{1,6}[.,]\d{2})\s*(?:eur|€)\s*(?:\n|$)",
     ]
-    for pattern in patterns:
-        matches = re.findall(pattern, pdf_text.lower())
+    for pattern in labeled_patterns:
+        matches = re.findall(pattern, text)
         if matches:
             raw = matches[-1].replace(",", ".").replace(" ", "")
             try:
-                return float(raw)
+                val = float(raw)
+                if val > 0:
+                    return val
             except ValueError:
                 continue
+
+    # Fallback — find all EUR amounts and return the largest (likely the total)
+    all_amounts = re.findall(r"([\d]{1,6}[.,]\d{2})\s*(?:eur|€)", text)
+    if all_amounts:
+        parsed = []
+        for a in all_amounts:
+            try:
+                parsed.append(float(a.replace(",", ".").replace(" ", "")))
+            except ValueError:
+                pass
+        if parsed:
+            return max(parsed)
+
     return None
 
 
