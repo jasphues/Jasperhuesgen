@@ -31,6 +31,7 @@ def search_invoice_emails(service):
     # Strict subject-only search to avoid pulling in non-invoice PDFs
     query = (
         f"(subject:invoice OR subject:rechnung OR subject:receipt OR subject:faktura "
+        f"OR subject:ausgangsrechnung "
         f"OR subject:\"your invoice\" OR subject:\"ihre rechnung\" OR subject:\"your receipt\") "
         f"has:attachment filename:pdf "
         f"after:{after} before:{before}"
