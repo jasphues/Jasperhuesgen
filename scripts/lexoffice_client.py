@@ -62,9 +62,7 @@ def upload_file(pdf_bytes: bytes, filename: str) -> str:
             continue
         if not r.ok:
             raise Exception(f"{r.status_code} {r.reason} for url: {r.url} — {r.text}")
-        data = r.json()
-        print(f"  File upload response keys: {list(data.keys())}")
-        return data.get("documentFileId") or data.get("id") or data.get("fileId") or list(data.values())[0]
+        return r.json()["id"]
     raise Exception("upload_file failed after 3 retries")
 
 
@@ -100,7 +98,7 @@ def create_voucher_draft(
         "lineItems": [line_item],
         "totalPrice": {"currency": "EUR"},
         "taxConditions": {"taxType": vat_type},
-        "files": [{"documentFileId": document_file_id}],
+        "files": [{"id": document_file_id, "fileType": "voucher"}],
     }
 
     if notes:
